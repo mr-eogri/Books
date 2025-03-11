@@ -44,7 +44,7 @@
             text-align: center;
             cursor: pointer;
             transition: transform 0.2s;
-            overflow: hidden; /* لمنع تجاوز المحتوى */
+            overflow: hidden;
         }
         .book:hover {
             transform: scale(1.05);
@@ -52,21 +52,59 @@
         .book img {
             width: 100%;
             border-radius: 15px;
-            height: 300px; /* ارتفاع ثابت للأغلفة */
-            object-fit: cover; /* لتجنب تشويه الصور */
+            height: 300px;
+            object-fit: cover;
         }
         .book h3 {
             margin: 10px 0;
             font-size: 16px;
-            white-space: nowrap; /* لمنع النص من الانتقال لسطر جديد */
+            white-space: nowrap;
             overflow: hidden;
-            text-overflow: ellipsis; /* إضافة "..." إذا تجاوز النص العرض */
+            text-overflow: ellipsis;
         }
         .loading {
             text-align: center;
             padding: 20px;
             font-size: 18px;
             color: #2D83EC;
+        }
+        /* تصميم صفحة عرض الكتاب */
+        .book-viewer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .book-viewer iframe {
+            width: 90%;
+            height: 90%;
+            border: none;
+            border-radius: 20px;
+        }
+        .book-viewer h2 {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+        }
+        .book-viewer .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #2D83EC;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
         }
     </style>
 </head>
@@ -80,6 +118,13 @@
     </div>
     <div class="loading" id="loading">جاري تحميل الكتب...</div>
 
+    <!-- صفحة عرض الكتاب -->
+    <div class="book-viewer" id="book-viewer">
+        <h2 id="book-title"></h2>
+        <iframe id="book-iframe" src=""></iframe>
+        <button class="close-btn" onclick="closeBookViewer()">إغلاق</button>
+    </div>
+
     <script>
         const repoOwner = 'mr-eogri'; // اسم مستخدم GitHub
         const repoName = 'Books'; // اسم المستودع
@@ -92,6 +137,9 @@
         const booksContainer = document.getElementById('books-container');
         const loadingElement = document.getElementById('loading');
         const searchInput = document.getElementById('search');
+        const bookViewer = document.getElementById('book-viewer');
+        const bookIframe = document.getElementById('book-iframe');
+        const bookTitle = document.getElementById('book-title');
 
         // دالة لجلب الكتب من GitHub API
         async function fetchBooks() {
@@ -124,16 +172,37 @@
                 bookElement.className = 'book';
                 bookElement.innerHTML = `
                     <img src="https://via.placeholder.com/200x300?text=No+Cover" alt="${book.name}">
-                    <h3>${book.name.replace('.pdf', '')}</h3>
+                    <h3>${cleanFileName(book.name)}</h3>
                 `;
                 bookElement.addEventListener('click', () => {
-                    window.open(book.download_url, '_blank');
+                    openBookViewer(book);
                 });
                 booksContainer.appendChild(bookElement);
             });
 
             currentPage++;
             loadingElement.textContent = 'جاري تحميل المزيد من الكتب...';
+        }
+
+        // دالة لفتح صفحة عرض الكتاب
+        function openBookViewer(book) {
+            bookIframe.src = book.download_url;
+            bookTitle.textContent = cleanFileName(book.name);
+            bookViewer.style.display = 'flex';
+        }
+
+        // دالة لإغلاق صفحة عرض الكتاب
+        function closeBookViewer() {
+            bookIframe.src = '';
+            bookViewer.style.display = 'none';
+        }
+
+        // دالة لتنظيف اسم الملف
+        function cleanFileName(fileName) {
+            return fileName
+                .replace('.pdf', '') // إزالة الامتداد
+                .replace(/[^a-zA-Z0-9\u0600-\u06FF\s]/g, ' ') // إزالة الرموز غير المرغوبة
+                .trim(); // إزالة المسافات الزائدة
         }
 
         // دالة للبحث عن الكتب
