@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+   <html lang="ar">
+   <head>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+       <title>عرض الكتب</title>
+       <style>
+           body {
+               background-color: #0C0C0C;
+               color: white;
+               font-family: Arial, sans-serif;
+               margin: 0;
+               padding: 20px;
+           }
+           header {
+               text-align: center;
+               padding: 20px;
+               background-color: #1C1C1C;
+               border-radius: 20px;
+               margin-bottom: 20px;
+           }
+           header input {
+               padding: 10px;
+               width: 300px;
+               border-radius: 20px;
+               border: none;
+               background-color: #2D2D2D;
+               color: white;
+           }
+           .books-container {
+               display: flex;
+               flex-wrap: wrap;
+               gap: 20px;
+               justify-content: center;
+           }
+           .book {
+               background-color: #1C1C1C;
+               border: 2px solid #2D83EC;
+               border-radius: 20px;
+               padding: 10px;
+               width: 200px;
+               text-align: center;
+               cursor: pointer;
+               transition: transform 0.2s;
+           }
+           .book:hover {
+               transform: scale(1.05);
+           }
+           .book img {
+               width: 100%;
+               border-radius: 15px;
+           }
+           .book h3 {
+               margin: 10px 0;
+               font-size: 16px;
+           }
+       </style>
+   </head>
+   <body>
+       <header>
+           <h1>عرض الكتب</h1>
+           <input type="text" id="search" placeholder="ابحث عن كتاب...">
+       </header>
+       <div class="books-container" id="books-container">
+           <!-- الكتب سيتم إضافتها هنا ديناميكيًا -->
+       </div>
+
+       <script>
+           const repoOwner = 'mr-eogri'; // استبدل باسم مستخدم GitHub الخاص بك
+           const repoName = 'Books'; // استبدل باسم المستودع الخاص بك
+           const booksFolder = 'books'; // اسم المجلد الذي يحتوي على الكتب
+
+           async function fetchBooks() {
+               const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${booksFolder}`;
+               try {
+                   const response = await fetch(apiUrl);
+                   const data = await response.json();
+                   const books = data.filter(file => file.name.endsWith('.pdf'));
+                   displayBooks(books);
+               } catch (error) {
+                   console.error('Error fetching books:', error);
+               }
+           }
+
+           function displayBooks(books) {
+               const booksContainer = document.getElementById('books-container');
+               booksContainer.innerHTML = '';
+               books.forEach(book => {
+                   const bookElement = document.createElement('div');
+                   bookElement.className = 'book';
+                   bookElement.innerHTML = `
+                       <img src="https://via.placeholder.com/200x300?text=No+Cover" alt="${book.name}">
+                       <h3>${book.name.replace('.pdf', '')}</h3>
+                   `;
+                   bookElement.addEventListener('click', () => {
+                       window.open(book.download_url, '_blank');
+                   });
+                   booksContainer.appendChild(bookElement);
+               });
+           }
+
+           document.getElementById('search').addEventListener('input', (e) => {
+               const searchTerm = e.target.value.toLowerCase();
+               const filteredBooks = books.filter(book => book.name.toLowerCase().includes(searchTerm));
+               displayBooks(filteredBooks);
+           });
+
+           fetchBooks();
+       </script>
+   </body>
+  </html>
