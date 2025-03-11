@@ -1,114 +1,162 @@
 <!DOCTYPE html>
-   <html lang="ar">
-   <head>
-       <meta charset="UTF-8">
-       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-       <title>عرض الكتب</title>
-      <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الكتب</title>
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script> eruda.init(); </script>
+    <style>
+        body {
+            background-color: #0C0C0C;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #1C1C1C;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+        header input {
+            padding: 10px;
+            width: 300px;
+            border-radius: 20px;
+            border: none;
+            background-color: #2D2D2D;
+            color: white;
+        }
+        .books-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .book {
+            background-color: #1C1C1C;
+            border: 2px solid #2D83EC;
+            border-radius: 20px;
+            padding: 10px;
+            width: 200px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            overflow: hidden; /* لمنع تجاوز المحتوى */
+        }
+        .book:hover {
+            transform: scale(1.05);
+        }
+        .book img {
+            width: 100%;
+            border-radius: 15px;
+            height: 300px; /* ارتفاع ثابت للأغلفة */
+            object-fit: cover; /* لتجنب تشويه الصور */
+        }
+        .book h3 {
+            margin: 10px 0;
+            font-size: 16px;
+            white-space: nowrap; /* لمنع النص من الانتقال لسطر جديد */
+            overflow: hidden;
+            text-overflow: ellipsis; /* إضافة "..." إذا تجاوز النص العرض */
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-size: 18px;
+            color: #2D83EC;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>عرض الكتب</h1>
+        <input type="text" id="search" placeholder="ابحث عن كتاب...">
+    </header>
+    <div class="books-container" id="books-container">
+        <!-- الكتب سيتم إضافتها هنا ديناميكيًا -->
+    </div>
+    <div class="loading" id="loading">جاري تحميل الكتب...</div>
 
-       <style>
-           body {
-               background-color: #0C0C0C;
-               color: white;
-               font-family: Arial, sans-serif;
-               margin: 0;
-               padding: 20px;
-           }
-           header {
-               text-align: center;
-               padding: 20px;
-               background-color: #1C1C1C;
-               border-radius: 20px;
-               margin-bottom: 20px;
-           }
-           header input {
-               padding: 10px;
-               width: 300px;
-               border-radius: 20px;
-               border: none;
-               background-color: #2D2D2D;
-               color: white;
-           }
-           .books-container {
-               display: flex;
-               flex-wrap: wrap;
-               gap: 20px;
-               justify-content: center;
-           }
-           .book {
-               background-color: #1C1C1C;
-               border: 2px solid #2D83EC;
-               border-radius: 20px;
-               padding: 10px;
-               width: 200px;
-               text-align: center;
-               cursor: pointer;
-               transition: transform 0.2s;
-           }
-           .book:hover {
-               transform: scale(1.05);
-           }
-           .book img {
-               width: 100%;
-               border-radius: 15px;
-           }
-           .book h3 {
-               margin: 10px 0;
-               font-size: 16px;
-           }
-       </style>
-   </head>
-   <body>
-       <header>
-           <h1>عرض الكتب</h1>
-           <input type="text" id="search" placeholder="ابحث عن كتاب...">
-       </header>
-       <div class="books-container" id="books-container">
-           <!-- الكتب سيتم إضافتها هنا ديناميكيًا -->
-       </div>
+    <script>
+        const repoOwner = 'mr-eogri'; // اسم مستخدم GitHub
+        const repoName = 'Books'; // اسم المستودع
+        const booksFolder = 'books'; // مجلد الكتب
+        const booksPerPage = 10; // عدد الكتب التي يتم تحميلها في كل مرة
+        let currentPage = 0; // الصفحة الحالية
+        let allBooks = []; // جميع الكتب
+        let filteredBooks = []; // الكتب المصفاة
 
-       <script>
-           const repoOwner = 'mr-eogri'; // استبدل باسم مستخدم GitHub الخاص بك
-           const repoName = 'Books'; // استبدل باسم المستودع الخاص بك
-           const booksFolder = 'books'; // اسم المجلد الذي يحتوي على الكتب
+        const booksContainer = document.getElementById('books-container');
+        const loadingElement = document.getElementById('loading');
+        const searchInput = document.getElementById('search');
 
-           async function fetchBooks() {
-               const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${booksFolder}`;
-               try {
-                   const response = await fetch(apiUrl);
-                   const data = await response.json();
-                   const books = data.filter(file => file.name.endsWith('.pdf'));
-                   displayBooks(books);
-               } catch (error) {
-                   console.error('Error fetching books:', error);
-               }
-           }
+        // دالة لجلب الكتب من GitHub API
+        async function fetchBooks() {
+            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${booksFolder}`;
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                allBooks = data.filter(file => file.name.endsWith('.pdf'));
+                filteredBooks = [...allBooks];
+                loadMoreBooks(); // تحميل الدفعة الأولى من الكتب
+            } catch (error) {
+                console.error('Error fetching books:', error);
+                loadingElement.textContent = 'حدث خطأ أثناء تحميل الكتب.';
+            }
+        }
 
-           function displayBooks(books) {
-               const booksContainer = document.getElementById('books-container');
-               booksContainer.innerHTML = '';
-               books.forEach(book => {
-                   const bookElement = document.createElement('div');
-                   bookElement.className = 'book';
-                   bookElement.innerHTML = `
-                       <img src="https://via.placeholder.com/200x300?text=No+Cover" alt="${book.name}">
-                       <h3>${book.name.replace('.pdf', '')}</h3>
-                   `;
-                   bookElement.addEventListener('click', () => {
-                       window.open(book.download_url, '_blank');
-                   });
-                   booksContainer.appendChild(bookElement);
-               });
-           }
+        // دالة لتحميل المزيد من الكتب
+        function loadMoreBooks() {
+            const startIndex = currentPage * booksPerPage;
+            const endIndex = startIndex + booksPerPage;
+            const booksToDisplay = filteredBooks.slice(startIndex, endIndex);
 
-           document.getElementById('search').addEventListener('input', (e) => {
-               const searchTerm = e.target.value.toLowerCase();
-               const filteredBooks = books.filter(book => book.name.toLowerCase().includes(searchTerm));
-               displayBooks(filteredBooks);
-           });
+            if (booksToDisplay.length === 0) {
+                loadingElement.textContent = 'لا توجد كتب أخرى.';
+                return;
+            }
 
-           fetchBooks();
-       </script>
-   </body>
-  </html>
+            booksToDisplay.forEach(book => {
+                const bookElement = document.createElement('div');
+                bookElement.className = 'book';
+                bookElement.innerHTML = `
+                    <img src="https://via.placeholder.com/200x300?text=No+Cover" alt="${book.name}">
+                    <h3>${book.name.replace('.pdf', '')}</h3>
+                `;
+                bookElement.addEventListener('click', () => {
+                    window.open(book.download_url, '_blank');
+                });
+                booksContainer.appendChild(bookElement);
+            });
+
+            currentPage++;
+            loadingElement.textContent = 'جاري تحميل المزيد من الكتب...';
+        }
+
+        // دالة للبحث عن الكتب
+        function searchBooks() {
+            const searchTerm = searchInput.value.toLowerCase();
+            filteredBooks = allBooks.filter(book => book.name.toLowerCase().includes(searchTerm));
+            booksContainer.innerHTML = ''; // إعادة تعيين عرض الكتب
+            currentPage = 0; // إعادة تعيين الصفحة الحالية
+            loadMoreBooks(); // تحميل الكتب المصفاة
+        }
+
+        // تحميل الكتب عند تحميل الصفحة
+        fetchBooks();
+
+        // إضافة حدث البحث عند الكتابة في حقل البحث
+        searchInput.addEventListener('input', searchBooks);
+
+        // تحميل المزيد من الكتب عند الوصول إلى أسفل الصفحة
+        window.addEventListener('scroll', () => {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+                loadMoreBooks();
+            }
+        });
+    </script>
+</body>
+</html>
