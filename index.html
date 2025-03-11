@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spiritual library</title>
+    <title>Spiritual Library</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script> eruda.init(); </script>
-
 </head>
 <body>
     <header>
-        <h1>Spiritual library</h1>
+        <h1>Spiritual Library</h1>
         <input type="text" id="search" placeholder="Find a book...">
     </header>
     <main id="book-container"></main>
+    <div id="pdf-viewer" class="hidden">
+        <button id="close-btn">✖</button>
+        <iframe id="pdf-frame"></iframe>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
