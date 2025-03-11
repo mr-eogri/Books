@@ -1,0 +1,38 @@
+body {
+    background-color: #0C0C0C;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+}
+header {
+    padding: 20px;
+    background-color: #1A1A1A;
+    border-bottom: 2px solid #2D83EC;
+}
+input {
+    width: 50%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 2px solid #2D83EC;
+    border-radius: 20px;
+    background: none;
+    color: white;
+}
+#book-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+.book {
+    border: 2px solid #2D83EC;
+    border-radius: 20px;
+    padding: 15px;
+    margin: 10px;
+    width: 60%;
+    cursor: pointer;
+}
+.book img {
+    max-width: 100px;
+    border-radius: 10px;
+}
