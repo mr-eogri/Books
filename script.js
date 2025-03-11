@@ -1,3 +1,6 @@
+// تحديد ملف الـ Worker الخاص بـ pdf.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
 let books = [];
 let batchSize = 10;
 let currentIndex = 0;
