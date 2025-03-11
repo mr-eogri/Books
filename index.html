@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>عرض الكتب</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script> eruda.init(); </script>
+
     <style>
         body {
             background-color: #0C0C0C;
@@ -106,126 +108,124 @@
             cursor: pointer;
             font-size: 16px;
         }
-    </style>
+  </style>
 </head>
 <body>
     <header>
         <h1>عرض الكتب</h1>
         <input type="text" id="search" placeholder="ابحث عن كتاب...">
     </header>
-    <div class="books-container" id="books-container">
-        <!-- الكتب سيتم إضافتها هنا ديناميكيًا -->
-    </div>
+    <div class="books-container" id="books-container"></div>
     <div class="loading" id="loading">جاري تحميل الكتب...</div>
-
-    <!-- صفحة عرض الكتاب -->
+    <button class="load-more-btn" id="load-more-btn">تحميل المزيد</button>
     <div class="book-viewer" id="book-viewer">
-        <h2 id="book-title"></h2>
-        <iframe id="book-iframe" src=""></iframe>
+        <iframe id="book-iframe"></iframe>
         <button class="close-btn" onclick="closeBookViewer()">إغلاق</button>
     </div>
 
     <script>
-        const repoOwner = 'mr-eogri'; // اسم مستخدم GitHub
-        const repoName = 'Books'; // اسم المستودع
-        const booksFolder = 'books'; // مجلد الكتب
-        const booksPerPage = 10; // عدد الكتب التي يتم تحميلها في كل مرة
-        let currentPage = 0; // الصفحة الحالية
-        let allBooks = []; // جميع الكتب
-        let filteredBooks = []; // الكتب المصفاة
+        const booksFolder = './books'; // المسار إلى مجلد الكتب داخل المشروع
+        const booksPerPage = 10;
+        let allBooks = [];
+        let currentPage = 0;
 
         const booksContainer = document.getElementById('books-container');
         const loadingElement = document.getElementById('loading');
+        const loadMoreBtn = document.getElementById('load-more-btn');
         const searchInput = document.getElementById('search');
         const bookViewer = document.getElementById('book-viewer');
         const bookIframe = document.getElementById('book-iframe');
-        const bookTitle = document.getElementById('book-title');
 
-        // دالة لجلب الكتب من GitHub API
         async function fetchBooks() {
-            const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${booksFolder}`;
             try {
-                const response = await fetch(apiUrl);
+                const response = await fetch(booksFolder);
                 const data = await response.json();
                 allBooks = data.filter(file => file.name.endsWith('.pdf'));
-                filteredBooks = [...allBooks];
-                loadMoreBooks(); // تحميل الدفعة الأولى من الكتب
+                loadMoreBooks();
             } catch (error) {
                 console.error('Error fetching books:', error);
                 loadingElement.textContent = 'حدث خطأ أثناء تحميل الكتب.';
             }
         }
 
-        // دالة لتحميل المزيد من الكتب
         function loadMoreBooks() {
             const startIndex = currentPage * booksPerPage;
             const endIndex = startIndex + booksPerPage;
-            const booksToDisplay = filteredBooks.slice(startIndex, endIndex);
-
-            if (booksToDisplay.length === 0) {
-                loadingElement.textContent = 'لا توجد كتب أخرى.';
-                return;
-            }
+            const booksToDisplay = allBooks.slice(startIndex, endIndex);
 
             booksToDisplay.forEach(book => {
                 const bookElement = document.createElement('div');
                 bookElement.className = 'book';
+                const coverUrl = `${booksFolder}/${book.name.replace('.pdf', '.jpg')}`;
+
                 bookElement.innerHTML = `
-                    <img src="https://via.placeholder.com/200x300?text=No+Cover" alt="${book.name}">
-                    <h3>${cleanFileName(book.name)}</h3>
+                    <img src="${coverUrl}" onerror="this.src='https://via.placeholder.com/200x300?text=No+Cover';" alt="غلاف الكتاب">
+                    <h3>${book.name.replace('.pdf', '')}</h3>
                 `;
-                bookElement.addEventListener('click', () => {
-                    openBookViewer(book);
-                });
+                bookElement.addEventListener('click', () => openBookViewer(book));
                 booksContainer.appendChild(bookElement);
             });
 
             currentPage++;
-            loadingElement.textContent = 'جاري تحميل المزيد من الكتب...';
+            if (endIndex >= allBooks.length) {
+                loadMoreBtn.style.display = 'none';
+            } else {
+                loadMoreBtn.style.display = 'block';
+            }
+
+            loadingElement.style.display = 'none';
         }
 
-        // دالة لفتح صفحة عرض الكتاب
         function openBookViewer(book) {
-            bookIframe.src = book.download_url;
-            bookTitle.textContent = cleanFileName(book.name);
             bookViewer.style.display = 'flex';
+            renderPDF(`${booksFolder}/${book.name}`);
         }
 
-        // دالة لإغلاق صفحة عرض الكتاب
+        async function renderPDF(pdfUrl) {
+            const loadingTask = pdfjsLib.getDocument(pdfUrl);
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(1);
+
+            const scale = 1.5;
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            bookIframe.innerHTML = "";
+            bookIframe.appendChild(canvas);
+
+            const renderContext = {
+                canvasContext: context,
+                viewport: viewport
+            };
+            await page.render(renderContext).promise;
+        }
+
         function closeBookViewer() {
             bookIframe.src = '';
             bookViewer.style.display = 'none';
         }
 
-        // دالة لتنظيف اسم الملف
-        function cleanFileName(fileName) {
-            return fileName
-                .replace('.pdf', '') // إزالة الامتداد
-                .replace(/[^a-zA-Z0-9\u0600-\u06FF\s]/g, ' ') // إزالة الرموز غير المرغوبة
-                .trim(); // إزالة المسافات الزائدة
-        }
+        searchInput.addEventListener('input', function() {
+            const term = this.value.toLowerCase();
+            booksContainer.innerHTML = '';
+            currentPage = 0;
+            allBooks = allBooks.filter(book => book.name.toLowerCase().includes(term));
+            loadMoreBooks();
+        });
 
-        // دالة للبحث عن الكتب
-        function searchBooks() {
-            const searchTerm = searchInput.value.toLowerCase();
-            filteredBooks = allBooks.filter(book => book.name.toLowerCase().includes(searchTerm));
-            booksContainer.innerHTML = ''; // إعادة تعيين عرض الكتب
-            currentPage = 0; // إعادة تعيين الصفحة الحالية
-            loadMoreBooks(); // تحميل الكتب المصفاة
-        }
+        loadMoreBtn.addEventListener('click', loadMoreBooks);
 
-        // تحميل الكتب عند تحميل الصفحة
-        fetchBooks();
-
-        // إضافة حدث البحث عند الكتابة في حقل البحث
-        searchInput.addEventListener('input', searchBooks);
-
-        // تحميل المزيد من الكتب عند الوصول إلى أسفل الصفحة
         window.addEventListener('scroll', () => {
             if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
                 loadMoreBooks();
             }
         });
+
+        fetchBooks();
     </script>
 </body>
 </html>
